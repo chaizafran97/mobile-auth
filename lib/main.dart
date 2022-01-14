@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_movie_app/movie%20by%20popularity/movie_popularity_widget.dart';
 import 'package:flutter_movie_app/movie%20by%20year/movie_year_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // new
-import 'package:firebase_core/firebase_core.dart'; // new
-import 'package:provider/provider.dart'; // new
-import 'firebase_options.dart'; // new
-import 'src/authentication.dart'; // new
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'src/authentication.dart';
 import 'src/widgets.dart';
 
 void main() {
