@@ -1,55 +1,121 @@
+import 'form_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_movie_app/movie%20by%20popularity/movie_popularity_widget.dart';
-import 'package:flutter_movie_app/movie%20by%20year/movie_year_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'src/authentication.dart';
-import 'src/widgets.dart';
+import 'main_page.dart';
+import 'package:provider/provider.dart';
+import 'auth.dart';
 
 void main() {
-  runApp(MaterialApp(
-    home: MainPage(),
-  ));
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ApplicationState(),
+      builder: (context, _) => const MyApp(),
+    ),
+  );
 }
 
-class MainPage extends StatefulWidget {
-  MainPage({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  @override
-  _MainPageState createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.purple[600],
-            centerTitle: true,
-            title: Text('Movie Bucket List'),
-            bottom: TabBar(tabs: [
-              Tab(child: Text('2020 Movies')
-                  //Icon(Icons.trending_up_rounded),
-                  ),
-              Tab(
-                child: Text('Popular Movies'),
-              ),
-/*              Tab(
-                child: Text('Login/Sign Up'),
-              )*/
-            ]),
-          ),
-          body: TabBarView(
-            children: [
-              MovieYearCustomCard(),
-              MoviePopularityCustomCard(),
-              //Text("data")
-            ],
-          ),
-        ));
+    return MaterialApp(
+      title: 'Movie App',
+      theme: ThemeData(
+        primarySwatch: Colors.purple,
+      ),
+      home: const HomePage(),
+    );
+  }
+}
+
+class ApplicationState extends ChangeNotifier {
+  ApplicationState() {
+    init();
+  }
+
+  Future<void> init() async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    FirebaseAuth.instance.userChanges().listen((user) {
+      if (user != null) {
+        _loginState = ApplicationLoginState.loggedIn;
+      } else {
+        _loginState = ApplicationLoginState.loggedOut;
+      }
+      notifyListeners();
+    });
+  }
+
+  ApplicationLoginState _loginState = ApplicationLoginState.loggedOut;
+  ApplicationLoginState get loginState => _loginState;
+
+  String? _email;
+  String? get email => _email;
+
+  void startLoginFlow() {
+    _loginState = ApplicationLoginState.emailAddress;
+    notifyListeners();
+  }
+
+  Future<void> verifyEmail(
+    String email,
+    void Function(FirebaseAuthException e) errorCallback,
+  ) async {
+    try {
+      var methods =
+          await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+      if (methods.contains('password')) {
+        _loginState = ApplicationLoginState.password;
+      } else {
+        _loginState = ApplicationLoginState.register;
+      }
+      _email = email;
+      notifyListeners();
+    } on FirebaseAuthException catch (e) {
+      errorCallback(e);
+    }
+  }
+
+  Future<void> signInWithEmailAndPassword(
+    String email,
+    String password,
+    void Function(FirebaseAuthException e) errorCallback,
+  ) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      errorCallback(e);
+    }
+  }
+
+  void cancelRegistration() {
+    _loginState = ApplicationLoginState.emailAddress;
+    notifyListeners();
+  }
+
+  Future<void> registerAccount(
+      String email,
+      String displayName,
+      String password,
+      void Function(FirebaseAuthException e) errorCallback) async {
+    try {
+      var credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      await credential.user!.updateDisplayName(displayName);
+    } on FirebaseAuthException catch (e) {
+      errorCallback(e);
+    }
+  }
+
+  void signOut() {
+    FirebaseAuth.instance.signOut();
   }
 }
